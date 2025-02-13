@@ -1,0 +1,134 @@
+local sun = asset.require("scene/solarsystem/sun/sun")
+local transforms = asset.require("scene/solarsystem/sun/transforms")
+local earth = asset.require("scene/solarsystem/planets/earth/earth")
+local earth_transforms = asset.require("scene/solarsystem/planets/earth/transforms")
+local moon = asset.require("scene/solarsystem/planets/earth/moon/moon")
+local coreKernels = asset.require("spice/core")
+
+local EarthMoonLine = {
+  Identifier = "EarthMoonLine",
+  Renderable = {
+    Type = "RenderableNodeLine",
+    StartNode = earth.Earth.Identifier,
+    EndNode = moon.Moon.Identifier,
+    Color = { 0.5, 0.5, 0.5 },
+    LineWidth = 2
+  },
+  GUI = {
+    Name = "Earth-Moon arrow",
+    Path = "/David",
+    Description = [[Draws a line between Earth and Moon.]]
+  }
+}
+
+local SunEarthLine = {
+  Identifier = "SunEarthLine",
+  Renderable = {
+    Type = "RenderableNodeLine",
+    StartNode = sun.Sun.Identifier,
+    EndNode = earth.Earth.Identifier,
+    Color = { 0.5, 0.5, 0.5 },
+    LineWidth = 2
+  },
+  GUI = {
+    Name = "Sun-Earth arrow",
+    Path = "/David",
+    Description = [[Draws a line between Sun and Earth.]]
+  }
+}
+
+local cyanTexture = openspace.createSingleColorImage("example_disc_color1", { 0.0, 1.0, 1.0 })
+
+-- copy-pasted from scene/solarsystem/planets/earth/grids.asset
+local EclipticRotationMatrix = {
+  -0.05487554,  0.4941095, -0.8676661,
+  -0.9938214 , -0.1109906, -0.0003515167,
+  -0.09647644,  0.8622859,  0.4971472
+}
+
+-- Draws a ring around Earth that is aligned with the eclptic, i.e. shows its orbital plane (as of
+-- J2000 but that's close enough for a wide range a dates)
+local EarthOrbitalPlane = {
+  Identifier = "EarthOrbitalPlane",
+  Parent = transforms.SunEclipJ2000.Identifier,
+  Renderable = {
+    Type = "RenderableDisc",
+    Texture = cyanTexture,
+    -- Texture = "/home/planete/dev/OpenSpace/data/assets/david/fade.png";
+    -- Size and width computed so that the ring covers just a bit more than the full range of the
+    -- moon's distance to Earth.
+    Size = 410e6,
+    Width = 0.15,
+    Opacity = .1
+  },
+  Transform = {
+    Translation = {
+      Type = "SpiceTranslation",
+      Target = coreKernels.ID.Earth,
+      Observer = coreKernels.ID.Sun,
+      Frame = coreKernels.Frame.EclipJ2000
+    }
+  },
+  GUI = {
+    Name = "Earth Orbital Plane",
+    Path = "/David"
+  }
+}
+
+
+local MoonTrailSun = {
+  Identifier = "MoonTrailSun",
+  Parent = transforms.SolarSystemBarycenter.Identifier,
+  Renderable = {
+    Type = "RenderableTrailOrbit",
+    Enabled = false,
+    Translation = {
+      Type = "SpiceTranslation",
+      Target = coreKernels.ID.Moon,
+      Observer = coreKernels.ID.SolarSystemBarycenter
+    },
+    Color = { 0.5, 0.3, 0.3 },
+    Period = 27.0,
+    Resolution = 1000,
+    Tag = { "moonTrail_solarSystem_alt", "moonTrail_terrestrial_alt", "moonTrail_earth_alt" }
+  },
+  GUI = {
+    Name = "Moon trail from the Sun",
+    Path = "/Solar System/Planets/Earth/Moon",
+    Description = "Alternate trail for the Moon, as observed from the Sun"
+  }
+}
+
+function davidScale(scale)
+  openspace.setPropertyValueSingle("Scene.Earth.Scale.Scale", scale)
+  openspace.setPropertyValueSingle("Scene.Moon.Scale.Scale", scale)
+end
+
+
+asset.onInitialize(function()
+  openspace.addSceneGraphNode(EarthMoonLine)
+  openspace.addSceneGraphNode(SunEarthLine)
+  openspace.addSceneGraphNode(EarthOrbitalPlane)
+  openspace.addSceneGraphNode(MoonTrailSun)
+end)
+
+asset.onDeinitialize(function()
+  openspace.removeSceneGraphNode(EarthMoonLine)
+  openspace.removeSceneGraphNode(SunEarthLine)
+  openspace.removeSceneGraphNode(EarthOrbitalPlane)
+  openspace.removeSceneGraphNode(MoonTrailSun)
+end)
+
+asset.export(EarthMoonLine)
+asset.export(SunEarthLine)
+asset.export(EarthOrbitalPlane)
+asset.export(MoonTrailSun)
+
+
+asset.meta = {
+  Name = "David's moon orbit assets",
+  Description = [[Assets for showing features of the orbit of the Moon]],
+  Author = "David Wagner",
+  URL = "http://openspaceproject.com",
+  License = "MIT license"
+}

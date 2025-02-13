@@ -1,0 +1,131 @@
+local sun = asset.require("scene/solarsystem/sun/sun")
+local transforms = asset.require("scene/solarsystem/sun/transforms")
+local earth = asset.require("scene/solarsystem/planets/earth/earth")
+local earth_transforms = asset.require("scene/solarsystem/planets/earth/transforms")
+local moon = asset.require("scene/solarsystem/planets/earth/moon/moon")
+local coreKernels = asset.require("spice/core")
+
+local EarthMoonLine = {
+  Identifier = "EarthMoonLine",
+  Renderable = {
+    Type = "RenderableNodeLine",
+    StartNode = earth.Earth.Identifier,
+    EndNode = moon.Moon.Identifier,
+    Color = { 0.5, 0.5, 0.5 },
+    LineWidth = 2
+  },
+  GUI = {
+    Name = "Earth-Moon arrow",
+    Path = "/David",
+    Description = [[Draws a line between Earth and Moon.]]
+  }
+}
+
+local SunEarthLine = {
+  Identifier = "SunEarthLine",
+  Renderable = {
+    Type = "RenderableNodeLine",
+    StartNode = sun.Sun.Identifier,
+    EndNode = earth.Earth.Identifier,
+    Color = { 0.5, 0.5, 0.5 },
+    LineWidth = 2
+  },
+  GUI = {
+    Name = "Sun-Earth arrow",
+    Path = "/David",
+    Description = [[Draws a line between Sun and Earth.]]
+  }
+}
+
+local cyanTexture = openspace.createSingleColorImage("example_disc_color1", { 0.0, 1.0, 1.0 })
+
+-- copy-pasted from scene/solarsystem/planets/earth/grids.asset
+local EclipticRotationMatrix = {
+  -0.05487554,  0.4941095, -0.8676661,
+  -0.9938214 , -0.1109906, -0.0003515167,
+  -0.09647644,  0.8622859,  0.4971472
+}
+
+local EarthOrbitalPlane = {
+  Identifier = "EarthOrbitalPlane",
+  Parent = transforms.SunEclipJ2000.Identifier,
+  Renderable = {
+    Type = "RenderableDisc",
+    Texture = cyanTexture,
+    -- Texture = "/home/planete/dev/OpenSpace/data/assets/david/fade.png";
+    Size = 410e6,
+    Width = 0.15,
+    Opacity = .1
+  },
+  Transform = {
+    Translation = {
+      Type = "SpiceTranslation",
+      Target = coreKernels.ID.Earth,
+      Observer = coreKernels.ID.Sun,
+      Frame = coreKernels.Frame.EclipJ2000
+    }
+  },
+  GUI = {
+    Name = "Earth Orbital Plane",
+    Path = "/David"
+  }
+}
+
+local orbitdisc = {
+  Identifier = "orbitdiscEarth",
+  Parent = transforms.SunEclipJ2000.Identifier,
+  Renderable = {
+    Type = "RenderableDisc",
+    Texture = cyanTexture,
+    Size = 410e6,
+    Width = 0.15,
+    Opacity = .1
+  },
+  Transform = {
+    Translation = {
+      Type = "SpiceTranslation",
+      Target = coreKernels.ID.Earth,
+      Observer = coreKernels.ID.Sun,
+      Frame = coreKernels.Frame.EclipJ2000
+    }
+  },
+  GUI = {
+    Name = "Earth Disc",
+    Path = "/Examples"
+  }
+}
+
+
+function davidScale(scale)
+  openspace.setPropertyValueSingle("Scene.Earth.Scale.Scale", scale)
+  openspace.setPropertyValueSingle("Scene.Moon.Scale.Scale", scale)
+end
+
+
+asset.onInitialize(function()
+  openspace.addSceneGraphNode(EarthMoonLine)
+  openspace.addSceneGraphNode(SunEarthLine)
+  -- openspace.addSceneGraphNode(EarthOrbitalPlane)
+  openspace.addSceneGraphNode(orbitdisc)
+end)
+
+asset.onDeinitialize(function()
+  openspace.removeSceneGraphNode(EarthMoonLine)
+  openspace.removeSceneGraphNode(SunEarthLine)
+  -- openspace.removeSceneGraphNode(EarthOrbitalPlane)
+  openspace.removeSceneGraphNode(orbitdisc)
+end)
+
+asset.export(EarthMoonLine)
+asset.export(SunEarthLine)
+asset.export(EarthOrbitalPlane)
+
+
+
+asset.meta = {
+  Name = "Earth-Moon and Sun-Earth arrows",
+  Description = [[]],
+  Author = "David Wagner",
+  URL = "http://openspaceproject.com",
+  License = "MIT license"
+}

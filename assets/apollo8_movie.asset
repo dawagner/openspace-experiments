@@ -1,0 +1,160 @@
+local function makeScript(ts, scene_name, movie_script)
+  return [[
+ local scene = "]]  .. scene_name .. [["
+ local ts = "]] .. ts .. [["
+ ]] .. movie_script
+end
+
+local dashboard_font_size = 16
+
+-- local Text = {
+--   Type = "DashboardItemText",
+--   Identifier = "JWSTStateText",
+--   GuiName = "JWST State Dashboard Text",
+--   Text = ""
+-- }
+-- TODO: add this to a new, independent screenspace dashboard
+local DistanceToEarth = {
+  Type = "DashboardItemDistance",
+  Identifier = "DistanceToEarth",
+  GuiName = "Apollo 8 distance to the Earth",
+  FontSize = dashboard_font_size,
+
+  SourceType = "Node",
+  SourceNodeName = "Apollo8",
+  DestinationType = "Node Surface",
+  DestinationNodeName = "Earth",
+
+  RequestedUnit = "km",
+  FormatString = "Distance to the Earth: {2:.0f} {3}",
+}
+local DistanceToMoon = {
+  Type = "DashboardItemDistance",
+  Identifier = "DistanceToMoon",
+  GuiName = "Apollo 8 distance to the Moon",
+  FontSize = dashboard_font_size,
+
+  SourceType = "Node",
+  SourceNodeName = "Apollo8",
+  DestinationType = "Node Surface",
+  DestinationNodeName = "Moon",
+
+  RequestedUnit = "km",
+  FormatString = "Distance to the Moon: {2:.0f} {3}",
+}
+
+local t0 = "1968 DEC 21 12:51:51" -- actual t0 is 12:51:00 but for some reason (wrong OpenSpace data about the Earth?), the trajectory crosses the earth surface 51s later.
+local ElapsedTime = {
+  Type = "DashboardItemElapsedTime",
+  Identifier = "ElapsedTime",
+  FontSize = dashboard_font_size,
+
+  ReferenceTime = t0,
+  LowestTimeUnit = "Second",
+}
+
+local Date = {
+  Type = "DashboardItemDate",
+  Identifier = "MyDate", -- prevent naming collision with the default date dashboard item
+  GuiName = "Date",
+  FontSize = dashboard_font_size,
+  FormatString = "Date: {}",
+  TimeFormat = "DD/MM HR:MN"
+}
+--
+-- TODO: DashboardItemSimulationIncrement
+
+asset.onInitialize(function()
+  -- hide screen noise
+  openspace.setPropertyValue("RenderEngine.ShowLog", false)
+  openspace.setPropertyValue("RenderEngine.ShowCamera", false)
+  -- hide all trails: we're not interested by most of them and they only add noise - we'll
+  -- selectively add them back later
+  openspace.action.triggerAction("os.FadeDownTrails")
+
+  -- minimal margin for the dashboard
+  openspace.setPropertyValue("Dashboard.StartPositionOffset", {5.0, 0.0})
+  openspace.dashboard.addDashboardItem(Date)
+  openspace.dashboard.addDashboardItem(DistanceToEarth)
+  openspace.setPropertyValue("Dashboard.DistanceToEarth.Enabled", false)
+  openspace.dashboard.addDashboardItem(DistanceToMoon)
+  openspace.setPropertyValue("Dashboard.DistanceToMoon.Enabled", false)
+  openspace.dashboard.addDashboardItem(ElapsedTime)
+  if openspace.time.currentTime() < openspace.time.convertTime(t0) then
+    openspace.setPropertyValue("Dashboard.ElapsedTime.FormatString", "Time to launch: {}")
+  else
+    openspace.setPropertyValue("Dashboard.ElapsedTime.FormatString", "Mission time: T + {}")
+  end
+
+  local movie_script = openspace.readFile("/home/planete/dev/OpenSpace/data/assets/david/apollo8_movie_script.lua")
+
+  local start_ts = "1968 DEC 21 12:51:20"
+  local scene_leaving_atmo_ts = "1968 DEC 21 12:52:37"
+  -- TODO: rename scenes 1, 2, 3... with more meaningful names
+  local scene_1_ts = "1968 DEC 21 12:54:00"
+  -- A8 get behind the Earth
+  local scene_1b_ts = "1968 DEC 21 13:15:00"
+  -- A8 is in front of the Earth
+  local scene_1c_ts = "1968 DEC 21 15:45:00"
+
+  -- A8 is en route to the Moon, start following it
+  local scene_2_ts = "1968 DEC 21 15:55:00" -- when does the translunar burn begin?
+
+  -- Get to a higher PoV
+  local scene_3_ts = "1968 DEC 21 16:20:00"
+  -- zoom out a bit, again
+  local scene_3b_ts = "1968 DEC 21 17:10:00"
+
+  -- a view of the CSM, looking back at the earth
+  local scene_lookback_earth_ts = "1968 DEC 21 17:30:00"
+
+  -- global earth/moon view
+  local scene_4_ts = "1968 DEC 21 18:30:00"
+  -- hide the launch trail and accelerate a lot
+  local scene_4b_ts = "1968 DEC 21 21:00:00"
+
+  -- focus on the moon and get closer, for the A8 approach
+  local scene_5_ts = "1968 DEC 24 04:15:00"
+
+  -- TODO: reduce repetition and chance for mistakes - use lua tables for the timestamp and names
+  local scene_lift_off_script = makeScript(start_ts, "lift-off", movie_script)
+  local scene_leaving_atmo_script = makeScript(scene_leaving_atmo_ts, "leaving-atmo", movie_script)
+  local scene_1_script = makeScript(scene_1_ts, "1", movie_script)
+  local scene_1b_script = makeScript(scene_1b_ts, "1b", movie_script)
+  local scene_1c_script = makeScript(scene_1c_ts, "1c", movie_script)
+  local scene_2_script = makeScript(scene_2_ts, "2", movie_script)
+  local scene_3_script = makeScript(scene_3_ts, "3", movie_script)
+  local scene_3b_script = makeScript(scene_3b_ts, "3b", movie_script)
+  local scene_lookback_earth_script = makeScript(scene_lookback_earth_ts, "looking-back-earth", movie_script)
+  local scene_4_script = makeScript(scene_4_ts, "4", movie_script)
+  local scene_4b_script = makeScript(scene_4b_ts, "4b", movie_script)
+  local scene_5_script = makeScript(scene_5_ts, "5", movie_script)
+
+  openspace.scriptScheduler.loadScheduledScript(start_ts, scene_lift_off_script)
+  openspace.scriptScheduler.loadScheduledScript(t0, 
+  [[openspace.setPropertyValue("Dashboard.ElapsedTime.FormatString", "Mission time: T + {}")]])
+  openspace.scriptScheduler.loadScheduledScript(scene_leaving_atmo_ts, scene_leaving_atmo_script)
+  openspace.scriptScheduler.loadScheduledScript(scene_1_ts, scene_1_script)
+  openspace.scriptScheduler.loadScheduledScript(scene_1b_ts, scene_1b_script)
+  openspace.scriptScheduler.loadScheduledScript(scene_1c_ts, scene_1c_script)
+  openspace.scriptScheduler.loadScheduledScript(scene_2_ts, scene_2_script)
+  openspace.scriptScheduler.loadScheduledScript(scene_3_ts, scene_3_script)
+  openspace.scriptScheduler.loadScheduledScript(scene_3b_ts, scene_3b_script)
+  openspace.scriptScheduler.loadScheduledScript(scene_lookback_earth_ts, scene_lookback_earth_script)
+  openspace.scriptScheduler.loadScheduledScript(scene_4_ts, scene_4_script)
+  openspace.scriptScheduler.loadScheduledScript(scene_4b_ts, scene_4b_script)
+  -- After t0 + 1d, let the elapsed time precision be hours instead of minutes
+  openspace.scriptScheduler.loadScheduledScript(openspace.time.advancedTime(t0, "1d"),
+      "openspace.setPropertyValueSingle('Dashboard.ElapsedTime.LowestTimeUnit', 5)", -- 5 == hour
+      "openspace.setPropertyValueSingle('Dashboard.ElapsedTime.LowestTimeUnit', 4)" -- 4 == minute
+    )
+  openspace.scriptScheduler.loadScheduledScript(scene_5_ts, scene_5_script)
+end
+)
+asset.onDeinitialize(function()
+  openspace.scriptScheduler.clear()
+  openspace.dashboard.removeDashboardItem(Date)
+  openspace.dashboard.removeDashboardItem(DistanceToEarth)
+  openspace.dashboard.removeDashboardItem(DistanceToMoon)
+  openspace.dashboard.removeDashboardItem(ElapsedTime)
+end)
