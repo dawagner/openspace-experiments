@@ -50,7 +50,7 @@ elseif scene == "leaving-atmo" then
     Up = {0.9900033896854753, 0.0909043549631067, -0.1078410249395429},
     Yaw = -0.013556703273582889
   }
-  openspace.navigation.setNavigationState(navstate)
+  openspace.pathnavigation.jumpToNavigationState(navstate, 0.5)
 elseif scene == "1" then
   scene_1_navstate = {
       Anchor = "Earth",

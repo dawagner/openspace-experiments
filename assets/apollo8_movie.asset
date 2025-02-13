@@ -68,9 +68,19 @@ asset.onInitialize(function()
   -- hide screen noise
   openspace.setPropertyValue("RenderEngine.ShowLog", false)
   openspace.setPropertyValue("RenderEngine.ShowCamera", false)
-  -- hide all trails: we're not interested by most of them and they only add noise - we'll
-  -- selectively add them back later
-  openspace.action.triggerAction("os.FadeDownTrails")
+  openspace.setPropertyValue("RenderEngine.ShowVersion", false)
+
+  -- hide most trails: they only add noise
+  -- openspace.action.triggerAction("os.FadeDownTrails")
+  openspace.setPropertyValue("Scene.*Trail.Renderable.Fade", 0.0)
+  openspace.setPropertyValue("Scene.Apollo8*Trail.Renderable.Fade", 1.0)
+  openspace.setPropertyValue("Scene.MoonTrail.Renderable.Fade", 1.0)
+
+  -- hide default dashboard items
+  -- TODO: use a new screenspace dashboard for that
+  openspace.setPropertyValue("Dashboard.Distance.Enabled", false)
+  openspace.setPropertyValue("Dashboard.GlobeLocation.Enabled", false)
+  openspace.setPropertyValue("Dashboard.Framerate.Enabled", false);
 
   -- minimal margin for the dashboard
   openspace.setPropertyValue("Dashboard.StartPositionOffset", {5.0, 0.0})
