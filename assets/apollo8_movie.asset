@@ -1,6 +1,6 @@
 local function makeScript(ts, scene_name, movie_script)
   return [[
- local scene = "]]  .. scene_name .. [["
+ local scene = "]] .. scene_name .. [["
  local ts = "]] .. ts .. [["
  ]] .. movie_script
 end
@@ -25,7 +25,7 @@ local DistanceToEarth = {
   DestinationType = "Node Surface",
   DestinationNodeName = "Earth",
 
-  RequestedUnit = "km",
+  RequestedUnit = "Kilometer",
   FormatString = "Distance to the Earth: {2:.0f} {3}",
 }
 local DistanceToMoon = {
@@ -39,7 +39,7 @@ local DistanceToMoon = {
   DestinationType = "Node Surface",
   DestinationNodeName = "Moon",
 
-  RequestedUnit = "km",
+  RequestedUnit = "Kilometer",
   FormatString = "Distance to the Moon: {2:.0f} {3}",
 }
 
@@ -56,13 +56,55 @@ local ElapsedTime = {
 local Date = {
   Type = "DashboardItemDate",
   Identifier = "MyDate", -- prevent naming collision with the default date dashboard item
-  GuiName = "Date",
+  -- GuiName = "Date",
   FontSize = dashboard_font_size,
   FormatString = "Date: {}",
   TimeFormat = "DD/MM HR:MN"
 }
 --
 -- TODO: DashboardItemSimulationIncrement
+
+local Spacing = {
+  Identifier = "Spacing",
+  Type = "DashboardItemSpacing",
+  Spacing = 15
+}
+
+local Legend1 = {
+  Identifier = "Legend1",
+  Type = "DashboardItemText"
+  FontSize = dashboard_font_size,
+  Text = ""
+}
+local Legend2 = {
+  Identifier = "Legend2",
+  Type = "DashboardItemText"
+  FontSize = dashboard_font_size,
+  Text = ""
+}
+
+
+local Title = {
+  Type = "ScreenSpaceImageLocal",
+  Identifier = "TitleScreen",
+  Name = "Title Screen",
+  TexturePath = asset.resource("apollo8_titlescreen.png"),
+  Scale = 4.0,
+  CartesianPosition = {0, 1.5, -6.0},
+  RenderDuringBlackout = true,
+}
+
+local Patch = {
+  Type = "ScreenSpaceImageLocal",
+  Identifier = "Patch",
+  Name = "Patch",
+  TexturePath = asset.resource("apollo-8-patch.png"),
+  Scale = 1.5,
+  CartesianPosition = {0, -1.0, -6.0},
+  RenderDuringBlackout = true,
+}
+
+local movie_script_path = asset.resource("apollo8_movie_script.lua")
 
 asset.onInitialize(function()
   -- hide screen noise
@@ -85,21 +127,36 @@ asset.onInitialize(function()
   -- minimal margin for the dashboard
   openspace.setPropertyValue("Dashboard.StartPositionOffset", {5.0, 0.0})
   openspace.dashboard.addDashboardItem(Date)
+  openspace.setPropertyValue("Dashboard.MyDate.Enabled", false)
   openspace.dashboard.addDashboardItem(DistanceToEarth)
   openspace.setPropertyValue("Dashboard.DistanceToEarth.Enabled", false)
   openspace.dashboard.addDashboardItem(DistanceToMoon)
   openspace.setPropertyValue("Dashboard.DistanceToMoon.Enabled", false)
   openspace.dashboard.addDashboardItem(ElapsedTime)
+  openspace.setPropertyValue("Dashboard.ElapsedTime.Enabled", false)
   if openspace.time.currentTime() < openspace.time.convertTime(t0) then
     openspace.setPropertyValue("Dashboard.ElapsedTime.FormatString", "Time to launch: {}")
   else
     openspace.setPropertyValue("Dashboard.ElapsedTime.FormatString", "Mission time: T + {}")
   end
 
-  local movie_script = openspace.readFile("/home/planete/dev/OpenSpace/data/assets/david/apollo8_movie_script.lua")
+  -- Set the dashboard refresh rate to make it more readable
+  openspace.setPropertyValue("Dashboard.RefreshRate", 500)
 
+  openspace.dashboard.addDashboardItem(Spacing)
+  openspace.dashboard.addDashboardItem(Legend1)
+  openspace.dashboard.addDashboardItem(Legend2)
+
+  openspace.addScreenSpaceRenderable(Title)
+  openspace.addScreenSpaceRenderable(Patch)
+  openspace.setPropertyValue("ScreenSpace.TitleScreen.Opacity", 0)
+  openspace.setPropertyValue("ScreenSpace.Patch.Opacity", 0)
+
+  local movie_script = openspace.readFile(movie_script_path)
+
+  local titlescreen_ts = "1968 DEC 21 12:51:15"
   local start_ts = "1968 DEC 21 12:51:20"
-  local scene_leaving_atmo_ts = "1968 DEC 21 12:52:37"
+  local scene_leaving_atmo_ts = "1968 DEC 21 12:52:45"
   -- TODO: rename scenes 1, 2, 3... with more meaningful names
   local scene_1_ts = "1968 DEC 21 12:54:00"
   -- A8 get behind the Earth
@@ -108,6 +165,7 @@ asset.onInitialize(function()
   local scene_1c_ts = "1968 DEC 21 15:45:00"
 
   -- A8 is en route to the Moon, start following it
+  -- TODO: message at actual_t0 + 2:50:40: TLI burn
   local scene_2_ts = "1968 DEC 21 15:55:00" -- when does the translunar burn begin?
 
   -- Get to a higher PoV
@@ -127,6 +185,7 @@ asset.onInitialize(function()
   local scene_5_ts = "1968 DEC 24 04:15:00"
 
   -- TODO: reduce repetition and chance for mistakes - use lua tables for the timestamp and names
+  local scene_title_script = makeScript(titlescreen_ts, "titlescreen", movie_script)
   local scene_lift_off_script = makeScript(start_ts, "lift-off", movie_script)
   local scene_leaving_atmo_script = makeScript(scene_leaving_atmo_ts, "leaving-atmo", movie_script)
   local scene_1_script = makeScript(scene_1_ts, "1", movie_script)
@@ -140,6 +199,7 @@ asset.onInitialize(function()
   local scene_4b_script = makeScript(scene_4b_ts, "4b", movie_script)
   local scene_5_script = makeScript(scene_5_ts, "5", movie_script)
 
+  openspace.scriptScheduler.loadScheduledScript(titlescreen_ts, scene_title_script)
   openspace.scriptScheduler.loadScheduledScript(start_ts, scene_lift_off_script)
   openspace.scriptScheduler.loadScheduledScript(t0, 
   [[openspace.setPropertyValue("Dashboard.ElapsedTime.FormatString", "Mission time: T + {}")]])
@@ -167,4 +227,7 @@ asset.onDeinitialize(function()
   openspace.dashboard.removeDashboardItem(DistanceToEarth)
   openspace.dashboard.removeDashboardItem(DistanceToMoon)
   openspace.dashboard.removeDashboardItem(ElapsedTime)
+  openspace.removeScreenSpaceRenderable(Title)
+  openspace.removeScreenSpaceRenderable(Patch)
 end)
+-- vim: ft=lua

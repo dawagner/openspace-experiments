@@ -66,7 +66,14 @@ local EarthOrbitalPlane = {
       Type = "SpiceTranslation",
       Target = coreKernels.ID.Earth,
       Observer = coreKernels.ID.Sun,
-      Frame = coreKernels.Frame.EclipJ2000
+      Frame = coreKernels.Frame.EclipJ2000,
+      TimeOffset = 0
+    },
+    Rotation = {
+      Type = "SpiceRotation",
+      SourceFrame = coreKernels.Frame.Earth,
+      DestinationFrame = coreKernels.Frame.Uranus,
+      TimeOffset = 100000
     }
   },
   GUI = {

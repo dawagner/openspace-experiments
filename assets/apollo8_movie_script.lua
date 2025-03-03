@@ -18,7 +18,45 @@ local one_hour = 60 * one_minute
 --  'Yaw': -0.013556703273582889}
 --  up until 12:55:00 ?
 
-if scene == "lift-off" then
+local function legend1(text)
+  openspace.setPropertyValue("Dashboard.Legend1.Text", text)
+end
+local function legend2(text)
+  openspace.setPropertyValue("Dashboard.Legend2.Text", text)
+end
+
+if scene == "titlescreen" then
+  openspace.time.interpolateDeltaTime(1, 0)
+  openspace.setPropertyValue("ScreenSpace.TitleScreen.Opacity", 1)
+  openspace.setPropertyValue("ScreenSpace.Patch.Opacity", 1)
+  openspace.setPropertyValue("RenderEngine.BlackoutFactor", 0, 0)
+elseif scene == "lift-off" then
+  openspace.setPropertyValue("Dashboard.MyDate.Enabled", true)
+  openspace.setPropertyValue("Dashboard.ElapsedTime.Enabled", true)
+
+  openspace.setPropertyValue("Dashboard
+
+  openspace.setPropertyValueSingle(
+      "Scene.Apollo8EarthBarycenterTrail.Renderable.Opacity", 0.0, 0
+  )
+  openspace.setPropertyValueSingle(
+      "Scene.Apollo8EarthBarycenterTrail.Renderable.Appearance.EnableFade", false
+  )
+  openspace.setPropertyValueSingle(
+      "Scene.Apollo8EarthBarycenterTrail.Renderable.Enabled", true
+  )
+
+  openspace.setPropertyValueSingle(
+      "Scene.Apollo8LaunchTrail.Renderable.Opacity", 1.0, 0
+  )
+  openspace.setPropertyValueSingle(
+      "Scene.Apollo8LaunchTrail.Renderable.Appearance.EnableFade", false
+  )
+  openspace.setPropertyValueSingle("Scene.Apollo8LaunchTrail.Renderable.Enabled", true)
+
+  -- Hide the moon trail for now: the perpective may be misleading
+  openspace.setPropertyValueSingle("Scene.MoonTrail.Renderable.Opacity", 0)
+
   openspace.time.interpolateDeltaTime(5, 0)
   openspace.setPropertyValue("Dashboard.ElapsedTime.LowestTimeUnit", 3) -- seconds
   -- Have the camera follow the earth rotation for now
@@ -37,6 +75,10 @@ if scene == "lift-off" then
     Yaw = 0.29227254402220043
   }
   openspace.navigation.setNavigationState(navstate)
+
+  openspace.setPropertyValue("ScreenSpace.TitleScreen.Opacity", 0)
+  openspace.setPropertyValue("ScreenSpace.Patch.Opacity", 0)
+  openspace.setPropertyValue("RenderEngine.BlackoutFactor", 1, 2)
 elseif scene == "leaving-atmo" then
   openspace.time.interpolateDeltaTime(5, 0)
   openspace.setPropertyValue("Dashboard.ElapsedTime.LowestTimeUnit", 4) -- minutes
@@ -50,8 +92,14 @@ elseif scene == "leaving-atmo" then
     Up = {0.9900033896854753, 0.0909043549631067, -0.1078410249395429},
     Yaw = -0.013556703273582889
   }
-  openspace.pathnavigation.jumpToNavigationState(navstate, 0.5)
+  -- OS 0.20.1
+  -- openspace.pathnavigation.jumpToNavigationState(navstate, 0.5)
+  -- OS latest
+  openspace.pathnavigation.jumpToNavigationState(navstate, false, 0.3)
 elseif scene == "1" then
+  -- TODO: legend "A8 is on low-earth-orbit and checks the spacecraft is in good conditions to go
+  -- to the Moon"
+
   scene_1_navstate = {
       Anchor = "Earth",
       Pitch = 0,
@@ -60,7 +108,6 @@ elseif scene == "1" then
       -- Timestamp = "1968 DEC 21 12:51:02",
       Up = {-0.2921629243111312, 0.9431645300075538, -0.15837138312712412},
       Yaw = 0,
-      Roll = 0,
   }
   openspace.navigation.setNavigationState(scene_1_navstate, false)
 
@@ -69,32 +116,11 @@ elseif scene == "1" then
       "NavigationHandler.OrbitalNavigator.FollowAnchorNodeRotation", false
   )
 
-  openspace.setPropertyValueSingle(
-      "Scene.Apollo8LaunchTrail.Renderable.Opacity", 1.0, 0
-  )
-  openspace.setPropertyValueSingle(
-      "Scene.Apollo8LaunchTrail.Renderable.Appearance.EnableFade", false
-  )
-  openspace.setPropertyValueSingle("Scene.Apollo8LaunchTrail.Renderable.Enabled", true)
-
-  openspace.setPropertyValueSingle(
-      "Scene.Apollo8EarthBarycenterTrail.Renderable.Opacity", 0.0, 0
-  )
-  openspace.setPropertyValueSingle(
-      "Scene.Apollo8EarthBarycenterTrail.Renderable.Appearance.EnableFade", false
-  )
-  openspace.setPropertyValueSingle(
-      "Scene.Apollo8EarthBarycenterTrail.Renderable.Enabled", true
-  )
-
   openspace.setPropertyValueSingle("Scene.Apollo8MoonTrail.Renderable.Opacity", 0.0, 0)
   openspace.setPropertyValueSingle(
       "Scene.Apollo8MoonTrail.Renderable.Appearance.EnableFade", false
   )
   openspace.setPropertyValueSingle("Scene.Apollo8MoonTrail.Renderable.Enabled", true)
-
-  -- Hide the moon trail for now: the perpective may be misleading
-  openspace.setPropertyValueSingle("Scene.MoonTrail.Renderable.Opacity", 0)
 
   -- TODO: remove other solar system trails (or even remove their assets entirely?)
   -- TODO: remove earth trail as well
@@ -108,27 +134,39 @@ elseif scene == "1c" then
   -- A8 is in front of the Earth and will start travelling towards the Moon. Slow down a bit.
   openspace.time.interpolateDeltaTime(5 * one_minute, 1)
 elseif scene == "2" then
+  -- TODO: remove this setup entirely and keep 1c instead? Or just zoom out a bit?
   openspace.setPropertyValueSingle(
     "NavigationHandler.OrbitalNavigator.Anchor", "Apollo8"
   )
   -- openspace.navigation.addTruckMovement(-15)
   openspace.pathnavigation.flyToNavigationState(
+    -- {
+    --   Anchor = 'Earth',
+    --   Pitch = -0.004338812347983791,
+    --   Position = {6635192.436218262, 5271771.01994133, 23208498.501390725},
+    --   ReferenceFrame = 'Root',
+    -- }
     {
-      Anchor = 'Apollo8',
-      Pitch = -0.004338812347983791,
-      Position = {6635192.436218262, 5271771.01994133, 23208498.501390725},
+      Anchor = 'Earth',
+      Pitch = -0.004214958230153339,
+      Position = {10630453.039978027, 8446072.183139801, 37183074.31481825},
       ReferenceFrame = 'Root',
+      Up = {-0.2850643244796526, 0.9490836293375169, -0.13408428480804957},
+      Yaw = -0.0010292842092629018
     }
     , 2)
 
   openspace.time.interpolateDeltaTime(5 * one_minute, 1)
 elseif scene == "3" then
+  -- TODO: legend: "Yellow trail: trajectory as seen from the launch pad; Red trail: compensated
+  -- for Earth rotation"
   local scene_3_navstate = {
-    Anchor = "Apollo8",
+    Anchor = "Earth",
     ReferenceFrame = "Root",
     Position = {-49977208.20648193, 36950276.16604614, 1425664.9150595963},
-    Up = {-0.18822411488912283, -0.21763145572127995, -0.957709889295732},
-    -- TODO: fix the yaw, pitch and roll
+    Up = {0.1543550315475728, 0.24569678465415035, -0.9569783771050212},
+    Yaw = 0.0,
+    Pitch = 0.0,
   }
 
   -- move the camera above A8 and zoom out a bit
@@ -137,6 +175,7 @@ elseif scene == "3" then
       TargetType = "NavigationState",
       PathType = "AvoidCollisionWithLookAt",
       NavigationState = scene_3_navstate,
+      UseTargetUpDirection = true,
       Duration = 4,
     }
   )
@@ -146,8 +185,12 @@ elseif scene == "3" then
 elseif scene == "3b" then
   -- zoom out a bit again
   -- TODO: use an absolute position?
-  openspace.navigation.addTruckMovement(-15)
+  -- FIXME: not needed?
+  -- openspace.navigation.addTruckMovement(-15)
 elseif scene == "looking-back-earth" then
+  -- cf. https://github.com/OpenSpace/OpenSpace/issues/3549
+  openspace.setPropertyValue("NavigationHandler.OrbitalNavigator.StereoscopicDepthOfFocusSurface", 100)
+  -- FIXME: find another A8 model with less details, so that Earth doesn't flicker?
   openspace.time.interpolateDeltaTime(5 * one_minute, 0)
   navstate = {
     Anchor = 'Apollo8',
@@ -158,7 +201,10 @@ elseif scene == "looking-back-earth" then
   -- hide the trails, as they are misleading
   openspace.setPropertyValueSingle("Scene.Apollo8EarthBarycenterTrail.Renderable.Opacity", 0.0, 0.5)
   openspace.setPropertyValueSingle("Scene.Apollo8LaunchTrail.Renderable.Opacity", 0.0, 0.5)
-  openspace.pathnavigation.jumpToNavigationState(navstate, 0.5)
+  -- OS 0.20.1
+  -- openspace.pathnavigation.jumpToNavigationState(navstate, 0.5)
+  -- OS latest
+  openspace.pathnavigation.jumpToNavigationState(navstate, false, 0.5)
 elseif scene == "4" then
   -- TODO: get a navstate where the view is centered on the middle of the earth/moon system?
   local scene_4_navstate = {
@@ -170,7 +216,10 @@ elseif scene == "4" then
     Yaw = 0.27984183932213347,
   }
 
-  openspace.pathnavigation.jumpToNavigationState(scene_4_navstate, 0.5)
+  -- OS 0.20.1
+  -- openspace.pathnavigation.jumpToNavigationState(scene_4_navstate, 0.5)
+  -- OS latest
+  openspace.pathnavigation.jumpToNavigationState(scene_4_navstate, false, 0.5)
   -- put the A8 trails back
   openspace.setPropertyValueSingle("Scene.Apollo8EarthBarycenterTrail.Renderable.Opacity", 1.0, 0.5)
   openspace.setPropertyValueSingle("Scene.Apollo8LaunchTrail.Renderable.Opacity", 1.0, 0.5)
@@ -183,6 +232,9 @@ elseif scene == "4" then
     "Scene.MoonTrail.Renderable.Appearance.LineWidth", 30, 0
   )
   openspace.setPropertyValueSingle("Scene.MoonTrail.Renderable.Opacity", 1.0, 3)
+  openspace.setPropertyValueSingle("Scene.MoonLabel.Renderable.Enabled", true, 0)
+  openspace.setPropertyValue("Scene.MoonLabel.Translation.Position", {50000000.0, -5000000.0, 0.0})
+
   -- speed time up, but very gradually (over 10s)
   openspace.time.interpolateDeltaTime(30 * one_minute, 10)
 elseif scene == "4b" then
