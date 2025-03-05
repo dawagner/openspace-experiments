@@ -1,8 +1,15 @@
-local function makeScript(ts, scene_name, movie_script)
+local movie_script_path = asset.resource("apollo8_movie_script.lua")
+local movie_script = openspace.readFile(movie_script_path)
+
+local function makeScript(scene_name)
   return [[
- local scene = "]] .. scene_name .. [["
- local ts = "]] .. ts .. [["
- ]] .. movie_script
+  local scene = "]] .. scene_name .. [["
+  ]] .. movie_script
+end
+
+local function add_scene(ts, scene_name)
+  local scene = makeScript(scene_name)
+  openspace.scriptScheduler.loadScheduledScript(ts, scene)
 end
 
 local dashboard_font_size = 16
@@ -92,6 +99,7 @@ local Title = {
   Scale = 4.0,
   CartesianPosition = {0, 1.5, -6.0},
   RenderDuringBlackout = true,
+  Opacity = 0.0, -- hide upon loading
 }
 
 local Patch = {
@@ -102,6 +110,7 @@ local Patch = {
   Scale = 1.5,
   CartesianPosition = {0, -1.0, -6.0},
   RenderDuringBlackout = true,
+  Opacity = 0.0, -- hide upon loading
 }
 
 local Earthrise = {
@@ -113,49 +122,16 @@ local Earthrise = {
   TexturePath = asset.resource("NASA-Apollo8-Dec24-Earthrise.jpg"),
   BorderWidth = 40,
   BorderColor = {1, 1, 1},
+  Opacity = 0.0, -- hide upon loading
 }
 
-local movie_script_path = asset.resource("apollo8_movie_script.lua")
-
 asset.onInitialize(function()
-  -- hide screen noise
-  openspace.setPropertyValue("RenderEngine.ShowLog", false)
-  openspace.setPropertyValue("RenderEngine.ShowCamera", false)
-  openspace.setPropertyValue("RenderEngine.ShowVersion", false)
-
-  -- hide most trails: they only add noise
-  -- openspace.action.triggerAction("os.FadeDownTrails")
-  openspace.setPropertyValue("Scene.*Trail.Renderable.Fade", 0.0)
-  openspace.setPropertyValue("Scene.Apollo8*Trail.Renderable.Fade", 1.0)
-  openspace.setPropertyValue("Scene.MoonTrail.Renderable.Fade", 1.0)
-
-  -- minimal margin for the dashboard
-  openspace.setPropertyValue("Dashboard.StartPositionOffset", {5.0, 0.0})
-
-  -- Set the dashboard refresh rate to make it more readable
-  openspace.setPropertyValue("Dashboard.RefreshRate", 500)
-
-  -- hide default dashboard items
-  -- TODO: use a new screenspace dashboard for that
-  openspace.setPropertyValue("Dashboard.Distance.Enabled", false)
-  openspace.setPropertyValue("Dashboard.GlobeLocation.Enabled", false)
-  openspace.setPropertyValue("Dashboard.Framerate.Enabled", false);
-
   -- add our dashboard items
+  -- FIXME: add them in a "disabled" state?
   openspace.dashboard.addDashboardItem(Date)
-  openspace.setPropertyValue("Dashboard.MyDate.Enabled", false)
   openspace.dashboard.addDashboardItem(DistanceToEarth)
-  openspace.setPropertyValue("Dashboard.DistanceToEarth.Enabled", false)
   openspace.dashboard.addDashboardItem(DistanceToMoon)
-  openspace.setPropertyValue("Dashboard.DistanceToMoon.Enabled", false)
   openspace.dashboard.addDashboardItem(ElapsedTime)
-  openspace.setPropertyValue("Dashboard.ElapsedTime.Enabled", false)
-  if openspace.time.currentTime() < openspace.time.convertTime(t0) then
-    openspace.setPropertyValue("Dashboard.ElapsedTime.FormatString", "Time to launch: {}")
-  else
-    openspace.setPropertyValue("Dashboard.ElapsedTime.FormatString", "Mission time: T + {}")
-  end
-
   openspace.dashboard.addDashboardItem(Spacing)
   openspace.dashboard.addDashboardItem(Legend1)
   openspace.dashboard.addDashboardItem(Legend2)
@@ -163,112 +139,69 @@ asset.onInitialize(function()
   openspace.addScreenSpaceRenderable(Title)
   openspace.addScreenSpaceRenderable(Patch)
   openspace.addScreenSpaceRenderable(Earthrise)
-  openspace.setPropertyValue("ScreenSpace.TitleScreen.Opacity", 0)
-  openspace.setPropertyValue("ScreenSpace.Patch.Opacity", 0)
-  openspace.setPropertyValue("ScreenSpace.Earthrise.Opacity", 0)
 
   --
   -- setup the movie scenes
   --
 
-  local movie_script = openspace.readFile(movie_script_path)
+  add_scene("1968 DEC 21 12:51:11", "init")
 
-  local titlescreen_ts = "1968 DEC 21 12:51:15"
-  local start_ts = "1968 DEC 21 12:51:20"
-  local scene_leaving_atmo_ts = "1968 DEC 21 12:52:45"
+  add_scene("1968 DEC 21 12:51:15", "titlescreen")
+  openspace.scriptScheduler.loadScheduledScript(t0, 
+    [[openspace.setPropertyValue("Dashboard.ElapsedTime.FormatString", "Mission time: T + {}")]])
+  add_scene("1968 DEC 21 12:51:20", "lift-off")
+  add_scene("1968 DEC 21 12:52:45", "leaving-atmo")
   -- TODO: rename scenes 1, 2, 3... with more meaningful names
-  local scene_1_ts = "1968 DEC 21 12:54:00"
+  add_scene("1968 DEC 21 12:54:00", "1")
   -- A8 get behind the Earth
-  local scene_1b_ts = "1968 DEC 21 13:15:00"
+  add_scene("1968 DEC 21 13:15:00", "1b")
   -- A8 is in front of the Earth
-  local scene_1c_ts = "1968 DEC 21 15:45:00"
+  add_scene("1968 DEC 21 15:45:00", "1c")
 
   -- A8 is en route to the Moon, start following it
   -- TODO: message at actual_t0 + 2:50:40: TLI burn
-  local scene_2_ts = "1968 DEC 21 15:55:00" -- when does the translunar burn begin?
+  add_scene("1968 DEC 21 15:55:00", "2") -- when does the translunar burn begin?
 
   -- Get to a higher PoV
-  local scene_3_ts = "1968 DEC 21 16:20:00"
+  add_scene("1968 DEC 21 16:20:00", "3")
   -- zoom out a bit, again
-  local scene_3b_ts = "1968 DEC 21 17:10:00"
+  add_scene("1968 DEC 21 17:10:00", "3b")
 
   -- a view of the CSM, looking back at the earth
-  local scene_lookback_earth_ts = "1968 DEC 21 17:30:00"
+  add_scene("1968 DEC 21 17:30:00", "looking-back-earth")
 
   -- global earth/moon view
-  local scene_4_ts = "1968 DEC 21 18:30:00"
+  add_scene("1968 DEC 21 18:30:00", "4")
   -- hide the launch trail and accelerate a lot
-  local scene_4b_ts = "1968 DEC 21 21:00:00"
-  local scene_4c_ts = "1968 DEC 23 00:00:00"
+  add_scene("1968 DEC 21 21:00:00", "4b")
+  add_scene("1968 DEC 23 00:00:00", "4c")
 
-  -- focus on the moon and get closer, for the A8 approach
-  local scene_5_ts = "1968 DEC 24 04:15:00"
-
-  -- PoV "above" the moon and the trajectory
-  local scene_moon_orbits_1_ts = "1968 DEC 24 09:10:00"
-  local scene_earthrise_ts = "1968 DEC 24 16:30:00"
-  local scene_earthrise_complete_ts = "1968 DEC 24 16:38:50"
-  local scene_moon_orbits_2_ts = "1968 DEC 24 16:39:30"
-  -- it's getting difficult to tell the orbits apart, so scale A8 up
-  local scene_moon_orbits_3_ts = "1968 DEC 24 16:50:00"
-
-  local scene_depart_from_moon_ts = "1968 DEC 25 06:10:00"
-  local scene_looking_back_at_moon_ts = "1968 DEC 25 06:45:00"
-
-  local scene_back_to_earth_ts = "1968 DEC 25 07:00:00"
-  local scene_back_change_trail_ts = "1968 DEC 25 23:00:00"
-
-  -- TODO: reduce repetition and chance for mistakes - use lua tables for the timestamp and names
-  local scene_title_script = makeScript(titlescreen_ts, "titlescreen", movie_script)
-  local scene_lift_off_script = makeScript(start_ts, "lift-off", movie_script)
-  local scene_leaving_atmo_script = makeScript(scene_leaving_atmo_ts, "leaving-atmo", movie_script)
-  local scene_1_script = makeScript(scene_1_ts, "1", movie_script)
-  local scene_1b_script = makeScript(scene_1b_ts, "1b", movie_script)
-  local scene_1c_script = makeScript(scene_1c_ts, "1c", movie_script)
-  local scene_2_script = makeScript(scene_2_ts, "2", movie_script)
-  local scene_3_script = makeScript(scene_3_ts, "3", movie_script)
-  local scene_3b_script = makeScript(scene_3b_ts, "3b", movie_script)
-  local scene_lookback_earth_script = makeScript(scene_lookback_earth_ts, "looking-back-earth", movie_script)
-  local scene_4_script = makeScript(scene_4_ts, "4", movie_script)
-  local scene_4b_script = makeScript(scene_4b_ts, "4b", movie_script)
-  local scene_4c_script = makeScript(scene_4c_ts, "4c", movie_script)
-  local scene_5_script = makeScript(scene_5_ts, "5", movie_script)
-  local scene_moon_orbits_1 = makeScript(scene_moon_orbits_1_ts, "moon-orbits-1", movie_script)
-  local scene_earthrise = makeScript(scene_earthrise_ts, "earthrise", movie_script)
-  local scene_earthrise_complete = makeScript(scene_earthrise_complete_ts, "earthrise-complete", movie_script)
-  local scene_moon_orbits_2 = makeScript(scene_moon_orbits_2_ts, "moon-orbits-2", movie_script)
-  local scene_moon_orbits_3 = makeScript(scene_moon_orbits_3_ts, "moon-orbits-3", movie_script)
-  local scene_depart_from_moon = makeScript(scene_depart_from_moon_ts, "depart-from-moon", movie_script)
-  local scene_looking_back_at_moon = makeScript(looking_back_at_moon_ts, "looking-back-moon", movie_script)
-
-  openspace.scriptScheduler.loadScheduledScript(titlescreen_ts, scene_title_script)
-  openspace.scriptScheduler.loadScheduledScript(start_ts, scene_lift_off_script)
-  openspace.scriptScheduler.loadScheduledScript(t0, 
-  [[openspace.setPropertyValue("Dashboard.ElapsedTime.FormatString", "Mission time: T + {}")]])
-  openspace.scriptScheduler.loadScheduledScript(scene_leaving_atmo_ts, scene_leaving_atmo_script)
-  openspace.scriptScheduler.loadScheduledScript(scene_1_ts, scene_1_script)
-  openspace.scriptScheduler.loadScheduledScript(scene_1b_ts, scene_1b_script)
-  openspace.scriptScheduler.loadScheduledScript(scene_1c_ts, scene_1c_script)
-  openspace.scriptScheduler.loadScheduledScript(scene_2_ts, scene_2_script)
-  openspace.scriptScheduler.loadScheduledScript(scene_3_ts, scene_3_script)
-  openspace.scriptScheduler.loadScheduledScript(scene_3b_ts, scene_3b_script)
-  openspace.scriptScheduler.loadScheduledScript(scene_lookback_earth_ts, scene_lookback_earth_script)
-  openspace.scriptScheduler.loadScheduledScript(scene_4_ts, scene_4_script)
-  openspace.scriptScheduler.loadScheduledScript(scene_4b_ts, scene_4b_script)
-  openspace.scriptScheduler.loadScheduledScript(scene_4c_ts, scene_4c_script)
   -- After t0 + 1d, let the elapsed time precision be hours instead of minutes
   openspace.scriptScheduler.loadScheduledScript(openspace.time.advancedTime(t0, "1d"),
       "openspace.setPropertyValue('Dashboard.ElapsedTime.LowestTimeUnit', 5)", -- 5 == hour
       "openspace.setPropertyValue('Dashboard.ElapsedTime.LowestTimeUnit', 4)" -- 4 == minute
-    )
-  openspace.scriptScheduler.loadScheduledScript(scene_5_ts, scene_5_script)
-  openspace.scriptScheduler.loadScheduledScript(scene_moon_orbits_1_ts, scene_moon_orbits_1)
-  openspace.scriptScheduler.loadScheduledScript(scene_earthrise_ts, scene_earthrise)
-  openspace.scriptScheduler.loadScheduledScript(scene_earthrise_complete_ts, scene_earthrise_complete)
-  openspace.scriptScheduler.loadScheduledScript(scene_moon_orbits_2_ts, scene_moon_orbits_2)
-  openspace.scriptScheduler.loadScheduledScript(scene_moon_orbits_3_ts, scene_moon_orbits_3)
-  openspace.scriptScheduler.loadScheduledScript(scene_depart_from_moon_ts, scene_depart_from_moon)
-  openspace.scriptScheduler.loadScheduledScript(scene_looking_back_at_moon_ts, scene_looking_back_at_moon)
+  )
+
+  -- focus on the moon and get closer, for the A8 approach
+  add_scene("1968 DEC 24 04:15:00", "5")
+
+  -- PoV "above" the moon and the trajectory
+  add_scene("1968 DEC 24 09:15:00", "moon-orbits-1")
+  add_scene("1968 DEC 24 16:30:00", "earthrise")
+  add_scene("1968 DEC 24 16:38:50", "earthrise-complete")
+  add_scene("1968 DEC 24 16:39:30", "moon-orbits-2")
+  -- it's getting difficult to tell the orbits apart, so scale A8 up
+  add_scene("1968 DEC 24 16:50:00", "moon-orbits-3")
+
+  add_scene("1968 DEC 25 06:10:00", "depart-from-moon")
+  add_scene("1968 DEC 25 06:45:00", "looking-back-moon")
+
+  add_scene("1968 DEC 25 07:00:00", "back-to-earth")
+  add_scene("1968 DEC 25 17:00:00", "change-trail")
+  add_scene("1968 DEC 27 14:00:00", "approaching-earth")
+
+  add_scene("1968 DEC 27 15:20:00", "end")
+  add_scene("1968 DEC 27 15:20:05", "loop")
 end
 )
 asset.onDeinitialize(function()

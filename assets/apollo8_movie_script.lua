@@ -8,7 +8,45 @@ local function legend2(text)
   openspace.setPropertyValue("Dashboard.Legend2.Text", text)
 end
 
-if scene == "titlescreen" then
+if scene == "init" then
+  -- hide screen noise
+  openspace.setPropertyValue("RenderEngine.ShowLog", false)
+  openspace.setPropertyValue("RenderEngine.ShowCamera", false)
+  openspace.setPropertyValue("RenderEngine.ShowVersion", false)
+
+  -- hide most trails: they only add noise
+  -- openspace.action.triggerAction("os.FadeDownTrails")
+  openspace.setPropertyValue("Scene.*Trail.Renderable.Fade", 0.0)
+  openspace.setPropertyValue("Scene.Apollo8*Trail.Renderable.Fade", 1.0)
+  openspace.setPropertyValue("Scene.MoonTrail.Renderable.Fade", 1.0)
+
+  -- minimal margin for the dashboard
+  openspace.setPropertyValue("Dashboard.StartPositionOffset", {5.0, 0.0})
+
+  -- Set the dashboard refresh rate to make it more readable
+  openspace.setPropertyValue("Dashboard.RefreshRate", 500)
+
+  -- hide default dashboard items
+  -- TODO: use a new screenspace dashboard for that
+  openspace.setPropertyValue("Dashboard.Distance.Enabled", false)
+  openspace.setPropertyValue("Dashboard.GlobeLocation.Enabled", false)
+  openspace.setPropertyValue("Dashboard.Framerate.Enabled", false);
+
+  -- hide our dashboard items for now
+  openspace.setPropertyValue("Dashboard.MyDate.Enabled", false)
+  openspace.setPropertyValue("Dashboard.DistanceToEarth.Enabled", false)
+  openspace.setPropertyValue("Dashboard.DistanceToMoon.Enabled", false)
+  openspace.setPropertyValue("Dashboard.ElapsedTime.Enabled", false)
+  openspace.setPropertyValue("Dashboard.ElapsedTime.FormatString", "Time to launch: {}")
+  legend1("")
+  legend2("")
+
+  openspace.setPropertyValue("ScreenSpace.TitleScreen.Opacity", 0)
+  openspace.setPropertyValue("ScreenSpace.Patch.Opacity", 0)
+  openspace.setPropertyValue("ScreenSpace.Earthrise.Opacity", 0)
+
+  openspace.resetCamera()
+elseif scene == "titlescreen" then
   openspace.time.interpolateDeltaTime(1, 0)
   openspace.setPropertyValue("ScreenSpace.TitleScreen.Opacity", 1)
   openspace.setPropertyValue("ScreenSpace.Patch.Opacity", 1)
@@ -238,7 +276,7 @@ elseif scene == "4b" then
   openspace.time.interpolateDeltaTime(2 * one_hour)
 elseif scene == "4c" then
   legend1("Yellow trail: trajectory as seen from the Moon")
-  -- hide the moon label while noone is looking
+  -- hide the moon label - it's been up for long enough
   openspace.setPropertyValue("Scene.MoonLabel.Renderable.Enabled", false, 0)
 elseif scene == "5" then
   legend1("")
@@ -263,7 +301,7 @@ elseif scene == "5" then
 elseif scene == "moon-orbits-1" then
   legend1("Apollo 8 gets into moon orbit")
 
-  openspace.time.interpolateDeltaTime(15 * one_minute)
+  openspace.time.interpolateDeltaTime(20 * one_minute)
 
   -- PoV "above" the moon and the trajectory
   navstate = {
@@ -317,38 +355,58 @@ elseif scene == "moon-orbits-2" then
 elseif scene == "moon-orbits-3" then
   legend1("A8 scaled x30'000")
   openspace.setPropertyValue("Scene.Apollo8.Scale.Scale", 30000, 2)
-  openspace.time.interpolateDeltaTime(30 * one_minute, 5)
+  openspace.time.interpolateDeltaTime(45 * one_minute, 5)
 elseif scene == "depart-from-moon" then
-  openspace.time.interpolateDeltaTime(1 * one_minute, 5)
-elseif scene == "looking-back-moon" then
   legend1("")
+  openspace.time.interpolateDeltaTime(5 * one_minute, 0)
+  openspace.setPropertyValue("Scene.Apollo8.Scale.Scale", 1, 2)
+elseif scene == "looking-back-moon" then
   navstate = {
-    Anchor: 'Apollo8',
-    Pitch: 0,
-    Position: {42.02239990234375, 1.6455459594726562, 22.808905601501465},
-    ReferenceFrame: 'Root',
-    Up: {0.47690043345713606, -0.13055571842081304, -0.8692072140496884},
-    Yaw: 0,
+    Anchor = 'Apollo8',
+    Pitch = 0,
+    Position = {42.02239990234375, 1.6455459594726562, 22.808905601501465},
+    ReferenceFrame = 'Root',
+    Up = {0.47690043345713606, -0.13055571842081304, -0.8692072140496884},
+    Yaw = 0,
   }
 
-  openspace.setPropertyValue("Scene.Apollo8.Scale.Scale", 1, 2)
-  openspace.time.interpolateDeltaTime(1 * one_minute, 5)
+  openspace.time.interpolateDeltaTime(1 * one_minute, 0)
   openspace.setPropertyValue("Scene.MoonTrail.Renderable.Opacity", 0.0, 1)
 
   openspace.pathnavigation.jumpToNavigationState(navstate, false, 0.5)
 elseif scene == "back-to-earth" then
   navstate = {
-    Anchor: 'Earth',
-    Pitch: 0.002429006922084879,
-    Position: {2434507.703063965, 449202283.677475, 266114544.18418694},
-    ReferenceFrame: 'Root',
-    Timestamp: '1968 DEC 25 07:00:38',
-    Up: {-0.9508649529558492, -0.15397224116940822, 0.26860452376968874},
-    Yaw: -0.003938608658881565
+    Anchor = 'Earth',
+    Pitch = 0.002429006922084879,
+    Position = {2434507.703063965, 449202283.677475, 266114544.18418694},
+    ReferenceFrame = 'Root',
+    Up = {-0.9814003185733762, -0.09388151599726902, 0.1674505170434833},
+    Yaw = -0.003938608658881565
   }
+
   openspace.pathnavigation.jumpToNavigationState(navstate, false, 0.5)
-  openspace.time.interpolateDeltaTime(2 * one_hour, 5)
+  openspace.time.interpolateDeltaTime(3 * one_hour, 5)
+
+  openspace.setPropertyValue("Scene.MoonTrail.Renderable.Opacity", 1.0, 2)
 elseif scene == "change-trail" then
-  openspace.setPropertyValue("Scene.Apollo8EarthBarycenterTrail.Renderable.Opacity", 1.0, 0.5)
-  openspace.setPropertyValue("Scene.Apollo8MoonTrail.Renderable.Opacity", 0.0, 0.5)
+  openspace.setPropertyValue("Scene.Apollo8EarthBarycenterTrail.Renderable.Opacity", 1.0, 3)
+  openspace.setPropertyValue("Scene.Apollo8MoonTrail.Renderable.Opacity", 0.0, 10)
+elseif scene == "approaching-earth" then
+  -- TODO: remove the Moon trail and the A8/Barycenter trail
+  navstate = {
+    Anchor = 'Apollo8',
+    Position = {-13.491363525390625, 21.084396362304688, -16.53566551208496},
+    ReferenceFrame = 'Root',
+    Up = {-0.5811361921001542, 0.23838590012751837, 0.7781085328228483}
+  }
+
+  openspace.time.interpolateDeltaTime(5 * one_minute, 0)
+  openspace.pathnavigation.jumpToNavigationState(navstate, false, 0.5)
+elseif scene == "end" then
+  openspace.time.interpolateDeltaTime(1, 0)
+  openspace.setPropertyValue("RenderEngine.BlackoutFactor", 0, 2)
+elseif scene == "loop" then
+  -- FIXME: this, together with the "end" scene, is hacky but I couldn't find a better idea yet.
+  openspace.time.interpolateTime("1968 DEC 21 12:51:10")
 end
+--
